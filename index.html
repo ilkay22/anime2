@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anime Information</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #121212; color: white; text-align: center; }
+        .anime-list { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+        .anime-card { background: #1e1e1e; margin: 10px; padding: 25px; border-radius: 10px; width: 300px; text-align: left; cursor: pointer; }
+        img { width: 100%; border-radius: 5px; }
+        h1 { font-size: 2.5em; margin-bottom: 20px; }
+        input { padding: 10px; width: 50%; margin-bottom: 20px; border-radius: 5px; border: none; }
+        .anime-card h3 { margin-top: 10px; }
+        .modal { 
+            display: none; 
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+            background: #1e1e1e; padding: 20px; border-radius: 10px; width: 80%; 
+            max-width: 500px; max-height: 80%; overflow-y: auto; 
+            text-align: left; z-index: 1000;
+        }
+        .modal img { 
+            width: 100%; 
+            max-width: 400px; /* Slightly larger image width */
+            height: auto;
+            margin-bottom: 15px; 
+            border-radius: 5px; 
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .modal h3, .modal p { margin: 10px 0; }
+        .modal .close { cursor: pointer; color: red; text-align: right; font-size: 1.5em; }
+        .overlay { 
+            display: none; 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background-color: rgba(0, 0, 0, 0.7); z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <h1>Anime Information</h1>
+    <input type="text" id="search" placeholder="Search Anime" onkeyup="searchAnime()">
+    <div class="anime-list" id="animeList"></div>
+    
+    <div class="overlay" id="overlay" onclick="closeModal()"></div>
+    
+    <div class="modal" id="animeModal">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <img id="modalImage" src="" alt="">
+        <h3 id="modalTitle"></h3>
+        <p id="modalRating"></p>
+        <p id="modalDescription"></p>
+    </div>
+    
+    <script>
+        const animeData = [
+            { title: "Attack on Titan", image: "images/p10701949_b_v8_ah.jpg", rating: "9.1", description: "Humans fight against giant humanoid creatures in a post-apocalyptic world. " },
+            { title: "Naruto", image: "images/MV5BZTNjOWI0ZTAtOGY1OS00ZGU0LWEyOWYtMjhkYjdlYmVjMDk2XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg", rating: "8.5", description: "A young ninja seeks recognition and dreams of becoming Hokage, the leader of his village." },
+            { title: "One Piece", image: "images/MV5BMTNjNGU4NTUtYmVjMy00YjRiLTkxMWUtNzZkMDNiYjZhNmViXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg", rating: "9.0", description: "A pirate crew led by Monkey D. Luffy searches for the legendary One Piece treasure." },
+            { title: "Demon Slayer", image: "images/MV5BMWU1OGEwNmQtNGM3MS00YTYyLThmYmMtN2FjYzQzNzNmNTE0XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg", rating: "8.9", description: "A young boy joins the Demon Slayer Corps to avenge his family and save his sister." },
+            { title: "Death Note", image: "images/deathnote.jpg", rating: "9.0", description: "A high school student discovers a notebook that allows him to kill anyone by writing their name." },
+            { title: "Fullmetal Alchemist: Brotherhood", image: "images/MV5BMzNiODA5NjYtYWExZS00OTc4LTg3N2ItYWYwYTUyYmM5MWViXkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg", rating: "9.2", description: "Two brothers use alchemy in search of the Philosopher's Stone to restore their bodies." },
+            { title: "Tokyo Ghoul", image: "images/MV5BZWI2NzZhMTItOTM3OS00NjcyLThmN2EtZGZjMjlhYWMwODMzXkEyXkFqcGc@._V1_.jpg", rating: "8.7", description: "A college student turns into a half-ghoul and struggles to survive in a world full of human-eating creatures." },
+            { title: "Solo Leveling", image: "images/sololeveling.jpg", rating: "8.7", description: "In a world where hunters, humans who possess magical abilities, must battle deadly monsters to protect the human race from certain annihilation, a notoriously weak hunter named Sung Jinwoo finds himself in a seemingly endless struggle for survival." },
+            { title: "Jujutsu Kaisen", image: "images/jjk.webp", rating: "8.7", description: "High school student Yuji Itadori as he joins a secret organization of Jujutsu Sorcerers to eliminate a powerful Curse named Ryomen Sukuna, of whom Yuji becomes the host." },
+            { title: "Jojo's Bizarre Adventure", image: "images/jjba.jpg", rating: "8.7", description: "The story of the Joestar family, who are possessed with intense psychic strength, and the adventures each member encounters throughout their lives." },
+            { title: "Dr. Stone", image: "images/Drstone.jpg", rating: "8.7", description: "Follows teen genius Senku Ishigami and his high school friend Taiju Oki as they work to rebuild civilization." },
+            { title: "Initial D", image: "images/initiald6.jpg", rating: "8.7", description: "Young Takumi Fujiwara finds himself thrust into the world of illegal street racing in the Gunma region of Japan." },
+            { title: "My Hero Academia", image: "images/mha.jpg", rating: "8.8", description: "In a world where most of the population has superpowers, a young boy named Izuku Midoriya dreams of becoming the greatest hero." },
+            { title: "Sword Art Online", image: "images/sao2.jpg", rating: "7.9", description: "Players of a virtual reality MMORPG find themselves trapped in the game and must clear it to escape." },
+            { title: "Hunter x Hunter", image: "images/hxh.jpg", rating: "9.0", description: "A young boy sets out to find his father, a legendary Hunter, and takes the Hunter Exam to become one himself." },
+            { title: "Fairy Tail", image: "images/fairy_tail.jpg", rating: "7.8", description: "A guild of wizards takes on dangerous quests while building friendships and battling foes." },
+            { title: "Bleach", image: "images/bleach.png", rating: "8.5", description: "Ichigo Kurosaki gains the powers of a Soul Reaper and must protect the world of the living from evil spirits." },
+            { title: "Dragon Ball Z", image: "images/dbz.jpg", rating: "8.9", description: "Goku and his friends defend the Earth from powerful foes while searching for the Dragon Balls to grant wishes." },
+            { title: "Neon Genesis Evangelion", image: "images/neon.jpg", rating: "8.6", description: "Teenagers pilot giant robots to protect humanity from monstrous beings known as Angels." },
+            { title: "One Punch Man", image: "images/opm.jpg", rating: "8.7", description: "A hero who can defeat anyone with a single punch searches for a worthy opponent." },
+            { title: "Cowboy Bebop", image: "images/cowboy.webp", rating: "8.9", description: "A group of bounty hunters travel the galaxy, trying to catch criminals while dealing with their pasts." },
+            { title: "Mob Psycho 100", image: "images/mob.jpg", rating: "8.7", description: "A young psychic with emotional struggles tries to find meaning and control his powers." },
+            { title: "Black Clover", image: "images/black clover.jpg", rating: "8.3", description: "A boy born without magic strives to become the Wizard King in a world where magic is everything." },
+            { title: "Vinland Saga", image: "images/saga.jpg", rating: "8.8", description: "A young Viking warrior seeks revenge for the death of his father while navigating the violent world of Viking conquest." },
+            { title: "Re:Zero - Starting Life in Another World", image: "images/rezero.jpg", rating: "8.6", description: "A boy is transported to a fantasy world where he can reset time upon his death, but with each reset, the consequences become more dire." },
+            { title: "Steins;Gate", image: "images/steins.jpg", rating: "8.8", description: "A group of friends discovers a way to send messages to the past, with unintended consequences that affect their lives." },
+            { title: "Akame ga Kill!", image: "images/akame.jpg", rating: "8.1", description: "A young man joins a group of assassins to fight against the corrupt empire, but learns harsh truths along the way." },
+            { title: "The Seven Deadly Sins", image: "images/7ds.jpg", rating: "8.2", description: "A group of knights must protect the kingdom from powerful forces while seeking redemption for their past crimes." },
+            { title: "Attack on Titan: No Regrets", image: "images/aot_no.jpg", rating: "8.4", description: "A prequel to the main series that focuses on Levi's past and his role in the Survey Corps." },
+            { title: "Blue Lock", image: "images/blue.jpg", rating: "8.1", description: "High school soccer players from across Japan gather for a controversial project designed to create the best and most egoistic striker in the world." },
+            { title: "Bleach: Thousand-Year Blood War", image: "images/tybw.jpg", rating: "8.7", description: "Ichigo Kurosaki faces his most dangerous battle yet as the Quincy invade Soul Society in a war that threatens to destroy the balance of worlds." },
+            { title: "The Disastrous Life of Saiki K.", image: "images/saiki.jpg", rating: "8.3", description: "Kusuo Saiki, a high school student with extraordinary psychic abilities, goes to great lengths to conceal his powers." },
+            { title: "Cyberpunk Edgerunners", image: "images/cyberpunk.jpg", rating: "8.3", description: "A street kid trying to survive in a future city, becomes a cyberpunk mercenary."},
+            { title: "Code Geass", image: "images/codegeass.jpg", rating: "8.9", description: "A rebel leader with the power of Geass fights against a powerful empire." },
+            { title: "Erased", image: "images/erased.jpg", rating: "8.5", description: "A man travels back in time to prevent tragic events in his childhood." },
+            { title: "Clannad", image: "images/clannad.jpg", rating: "8.6", description: "A touching story of friendship, love, and family bonds." },
+            { title: "No Game No Life", image: "images/ngnl.jpg", rating: "8.2", description: "Gamer siblings find themselves in a world where everything is decided by games." },
+            { title: "Hellsing Ultimate", image: "images/hellsing.webp", rating: "8.4", description: "A vampire and his master defend humanity from supernatural threats." },
+            { title: "Fate/Zero", image: "images/fatezero.jpg", rating: "8.5", description: "Mages summon heroes from history to fight for the Holy Grail." },
+            { title: "Toradora!", image: "images/toradora.jpg", rating: "8.3", description: "A high school romance with a feisty twist." },
+            { title: "Made in Abyss", image: "images/madeinabyss.jpg", rating: "8.7", description: "A girl and her robot friend explore the mysterious Abyss." },
+            { title: "Overlord", image: "images/overlord.jpg", rating: "8.0", description: "A powerful undead overlord rules a game world as reality." },
+            { title: "Parasyte: The Maxim", image: "images/parasyte.jpg", rating: "8.4", description: "A high school student fights to survive after being infected by an alien parasite." },
+            { title: "Angel Beats!", image: "images/angelbeats2.jpg", rating: "8.1", description: "Students fight against fate in the afterlife." },
+            { title: "Psycho-Pass", image: "images/psychopass.jpg", rating: "8.3", description: "A futuristic society judges criminals before they commit crimes." },
+            { title: "The Rising of the Shield Hero", image: "images/shieldhero.jpg", rating: "8.0", description: "A betrayed hero must rise again to save a fantasy world." },
+            { title: "Gurren Lagann", image: "images/gurrenlagann.jpg", rating: "8.6", description: "A mecha adventure about pushing the limits of possibility." },
+            { title: "Your Lie in April", image: "images/ylia.webp", rating: "8.8", description: "A pianist finds love and music again after a tragic loss." },
+            { title: "The Devil is a Part-Timer!", image: "images/devilparttimer.jpg", rating: "7.9", description: "A demon lord works at a fast-food restaurant in modern Japan." },
+            { title: "Noragami", image: "images/noragami.jpg", rating: "8.0", description: "A minor god does odd jobs in hopes of becoming famous." },
+            { title: "Konosuba", image: "images/konosuba.jpg", rating: "8.2", description: "A hilarious fantasy adventure with a dysfunctional party." },
+            { title: "Zankyou no Terror", image: "images/zankyou.jpg", rating: "8.1", description: "Two mysterious terrorists shake the foundations of Japan." },
+            { title: "Fire Force", image: "images/fire.jpg", rating: "7.6", description: " youth with pyrokinetic abilities who joins a special force developed to counter pyrokinetic monsters threatening Tokyo, which is the sole remaining city in a world ravaged by a global fire." },
+            { title: "Hell’s Paradise: Jigokuraku", image: "images/hells.jpg", rating: "8.1", description: "For a chance at a pardon, a ninja assassin joins other condemned criminals on a journey to a mysterious island to retrieve an elixir of immortality." },
+            { title: "Dandadan", image: "images/dandadan.jpg", rating: "8.4", description: "two teenagers with supernatural powers fighting yōkai and aliens with help from multiple allies." },
+            { title: "Zom 100", image: "images/zom100.jpg", rating: "7.3", description: " A worker in a foreign finance company is bullied and worked around the clock, before a zombie outbreak finally makes him feel alive." },
+            { title: "The god of highschool", image: "images/godofhs.jpg", rating: "7.2", description: "Jin Mori, a 17 year old high school student and martial artist who seeks to challenge himself by facing tough opponents." },
+            { title: "Baki hanma", image: "images/baki.jpg", rating: "7.0", description: "The story follows teenager Baki Hanma as he trains and tests his fighting skills against a variety of different opponents in deadly, no-rules hand-to-hand combat." },
+            { title: "Tokyo Revengers", image: "images/tokyo.jpg", rating: "7.8", description: " Takemichi Hanagaki, a 26-year-old part-timer with a gloomy life, who learns that his ex-girlfriend, Hinata Tachibana, has died in a dispute involving the Tokyo Manji Gang." },
+            { title: "Chainsaw Man", image: "images/csm.jpg", rating: "8.3", description: "Denji, an impoverished teenager who makes a contract that fuses his body with that of Pochita, the dog-like Chainsaw Devil, granting him the ability to transform parts of his body into chainsaws." }
+        ];
+
+        function displayAnime(animeList) {
+            const list = document.getElementById("animeList");
+            list.innerHTML = "";
+            animeList.forEach((anime, index) => {
+                list.innerHTML += `
+                    <div class="anime-card" onclick="openModal(${index})">
+                        <img src="${anime.image}" alt="${anime.title}">
+                        <h3>${anime.title}</h3>
+                        <p>Rating: ${anime.rating}</p>
+                        <p>${anime.description.substring(0, 50)}...</p>
+                    </div>
+                `;
+            });
+        }
+        
+        function searchAnime() {
+            let query = document.getElementById("search").value.toLowerCase();
+            let filtered = animeData.filter(anime => anime.title.toLowerCase().includes(query));
+            displayAnime(filtered);
+        }
+        
+        function openModal(index) {
+            const anime = animeData[index];
+            document.getElementById("modalImage").src = anime.image;
+            document.getElementById("modalTitle").innerText = anime.title;
+            document.getElementById("modalRating").innerText = "Rating: " + anime.rating;
+            document.getElementById("modalDescription").innerText = anime.description;
+            document.getElementById("animeModal").style.display = "block";
+            document.getElementById("overlay").style.display = "block";
+        }
+        
+        function closeModal() {
+            document.getElementById("animeModal").style.display = "none";
+            document.getElementById("overlay").style.display = "none";
+        }
+        
+        displayAnime(animeData);
+    </script>
+</body>
+</html>
